@@ -2,7 +2,8 @@ import pygame
 import sys
 import inputBox as inp
 import button
-import heapq
+import node
+import time
 
 pygame.init()
 
@@ -17,6 +18,8 @@ BLACK=(0,0,0)
 RED=(220,0,0)
 BLUE=(0,0,220)
 GREEN=(0,220,0)
+PURPLE=(128,0,128)
+ORANGE=(255,165,0)
 
 WIN.fill(WHITE)
 FONT = pygame.font.Font(None, 32)
@@ -27,69 +30,7 @@ cell_size=0
 starting_point=(0,0)
 goal_point=(2,2)
 
-class Node:
-    def __init__(self, position, parent=None, cost=0):
-        self.position = position
-        self.parent = parent
-        self.cost = cost
-        
-    def __eq__(self,other):
-        return (self.position == other.position)
-    
-    def __ne__(self, other):
-        return not (self.position == other.position)
 
-    def __lt__(self, other):
-        return (self.cost < other.cost)
-    
-    def __hash__(self):
-        return hash((self.position, self.parent, self.cost))
-
-
-#DRAWS THE BOXES FOR ALGORITHM
-def draw_initial_board(rows,cols):
-    print(starting_point,goal_point)
-    global cell_size
-    cell_x,cell_y=WIDTH//rows,HEIGHT//cols
-    cell_size=min(cell_x,cell_y)
-    WIN = pygame.display.set_mode(size=(cell_size*rows,cell_size*cols))
-    WIN.fill(WHITE)
-    
-    for i in range(rows):
-        for j in range(cols):
-            pygame.draw.rect(WIN,BLACK,((cell_size*i)+2,(cell_size*j+2),cell_size-1,cell_size-1))
-    pygame.draw.rect(WIN,WHITE,((cell_size*rows)-1,0,1,(cell_size*cols)))
-    pygame.draw.rect(WIN,WHITE,(0,(cell_size*cols)-1,(cell_size*rows),1))
-    
-    pygame.draw.rect(WIN,RED,((cell_size*starting_point[0])+2,(cell_size*starting_point[1])+2,cell_size-1,cell_size-1))
-    pygame.draw.rect(WIN,BLUE,((cell_size*goal_point[0])+2,(cell_size*goal_point[1])+2,cell_size-1,cell_size-1))
-    
-
-#updates the current grid, if we want to create some walls
-def update_board(curr_pos):
-    if curr_pos!=starting_point and curr_pos!=goal_point:
-        pygame.draw.rect(WIN,WHITE,((cell_size*curr_pos[0])+2,(cell_size*curr_pos[1])+2,cell_size-1,cell_size-1))
-    
-    
-#simple heuristic for the computation    
-def heuristic(node, goal):
-    x1, y1 = node.position
-    x2, y2 = goal.position
-    return abs(x1 - x2) + abs(y1 - y2)
-
-def get_neighbors(node):
-    x, y = node.position
-    neighbors = []
-
-    # Add adjacent nodes (up, down, left, right)
-    for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
-        new_x, new_y = x + dx, y + dy
-        if new_x in range(0,rows) and new_y in range(0,cols): 
-            neighbors.append(Node((new_x, new_y), parent=node, cost=node.cost + 1))
-
-    return neighbors
-
-#TO DO..
 #  A* Search Algorithm
 # 1.  Initialize the open list
 # 2.  Initialize the closed list
@@ -128,51 +69,147 @@ def get_neighbors(node):
   
 #     e) push q on the closed list
 #     end (while loop)
-def find_path(start, goal):
+
+
+def astar(maze, start, end):
+    """Returns a list of tuples as a path from the given start to the given end in the given maze"""
+
+    # Create start and end node
+    start_node = node.Node(None, start)
+    start_node.g = start_node.h = start_node.f = 0
+    end_node = node.Node(None, end)
+    end_node.g = end_node.h = end_node.f = 0
+
+    # Initialize both open and closed list
     open_list = []
-    closed_list = set()
+    closed_list = set()                # <-- closed_list must be a set
 
-    heapq.heappush(open_list, (start.cost, start))
-    
-    while open_list:
-        current_cost, current_node = heapq.heappop(open_list)
+    # Add the start node
+    open_list.append(start_node)
 
-        if current_node == goal:
-            print("yeah?")
-            # Goal reached, construct and return the path
+    # Loop until you find the end
+    while len(open_list) > 0:
+
+        # Get the current node
+        current_node = open_list[0]
+        current_index = 0
+        for index, item in enumerate(open_list):
+            if item.f < current_node.f:
+                current_node = item
+                current_index = index
+
+        # Pop current off open list, add to closed list
+        open_list.pop(current_index)
+        closed_list.add(current_node)     # <-- change append to add
+
+        # Found the goal
+        if current_node == end_node:
+            cost=current_node.f
             path = []
-            while current_node:
-                path.append(current_node.position)
-                current_node = current_node.parent
-            return path[::-1]
+            current = current_node
+            while current is not None:
+                path.append(current.position)
+                current = current.parent
+            print("returning ",path[::-1],cost)
+            return path[::-1],cost # Return reversed path and cost
 
-        closed_list.add(current_node)
+        # Generate children
+        children=get_neighbors(current_node,maze)
 
-        for neighbor in get_neighbors(current_node):
-            # print("doing something ",neighbor.position,neighbor.cost,neighbor.parent)
-            if neighbor in closed_list:
+        # Loop through children
+        for child in children:
+
+            # Child is on the closed list
+            if child in closed_list:              # <-- remove inner loop so continue takes you to the end of the outer loop
                 continue
 
-            new_cost = current_node.cost + 1
-            # print(open_list)
-            # print(heuristic(neighbor,goal))
-            # print(type(neighbor))
-            if neighbor not in [tup[1] for tup in open_list]:
-                heapq.heappush(open_list, (new_cost + heuristic(neighbor, goal), neighbor))
-            elif new_cost < neighbor.cost:
-                neighbor.cost = new_cost
-                neighbor.parent = current_node
-                
+            # Create the f, g, and h values
+            heuristic(child,current_node,end_node)
+
+            # Child is already in the open list
+            for open_node in open_list:
+                if child == open_node and child.g > open_node.g:
+                    continue
+
+            # Add the child to the open list
+            open_list.append(child)
+    return [],-1
+
+
+
+#DRAWS THE BOXES FOR ALGORITHM
+def draw_initial_board(rows,cols):
+    print(starting_point,goal_point)
+    global cell_size
+    cell_x,cell_y=WIDTH//rows,HEIGHT//cols
+    cell_size=min(cell_x,cell_y)
+    WIN = pygame.display.set_mode(size=(cell_size*rows,cell_size*cols))
+    WIN.fill(WHITE)
+    
+    for i in range(rows):
+        for j in range(cols):
+            pygame.draw.rect(WIN,BLACK,((cell_size*i)+2,(cell_size*j+2),cell_size-1,cell_size-1))
+    pygame.draw.rect(WIN,WHITE,((cell_size*rows)-1,0,1,(cell_size*cols)))
+    pygame.draw.rect(WIN,WHITE,(0,(cell_size*cols)-1,(cell_size*rows),1))
+    
+    pygame.draw.rect(WIN,RED,((cell_size*starting_point[0])+2,(cell_size*starting_point[1])+2,cell_size-1,cell_size-1))
+    pygame.draw.rect(WIN,BLUE,((cell_size*goal_point[0])+2,(cell_size*goal_point[1])+2,cell_size-1,cell_size-1))
+    
+
+#updates the current grid, if we want to create some walls
+def update_board(curr_pos,visitable_points):
+    if curr_pos!=starting_point and curr_pos!=goal_point:
+        pygame.draw.rect(WIN,WHITE,((cell_size*curr_pos[0])+2,(cell_size*curr_pos[1])+2,cell_size-1,cell_size-1))
+    visitable_points[curr_pos[0]][curr_pos[1]]=False
+    return visitable_points
+    
+    
+#simple heuristic for the computation    
+def heuristic(child,current_node,end_node):
+    child.g = current_node.g + 1
+    child.h = ((child.position[0] - end_node.position[0]) ** 2) + ((child.position[1] - end_node.position[1]) ** 2)
+    child.f = child.g + child.h
+
+def get_neighbors(current_node,maze):
+    children = []
+    for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0)]: # Adjacent squares
+
+        # Get node position
+        node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
+
+        # Make sure within range
+        if node_position[0] > (rows - 1) or node_position[0] < 0 or node_position[1] > (cols -1) or node_position[1] < 0:
+            continue
+
+        # Make sure walkable terrain
+        if maze[node_position[0]][node_position[1]] == False:
+            continue
+
+        # Create new node
+        new_node = node.Node(current_node, node_position)
+
+        # Append
+        children.append(new_node)
+
+    return children
+
+# def draw_current_path(open_list,node):
+#     # if node!=starting_point:
+#     pygame.draw.rect(WIN,PURPLE,((cell_size*node.position[0])+2,(cell_size*node.position[1])+2,cell_size-1,cell_size-1))
+#     for possible_nodes in open_list:  
+#         pygame.draw.rect(WIN,ORANGE,((cell_size*possible_nodes[1].position[0])+2,(cell_size*possible_nodes[1].position[1])+2,cell_size-1,cell_size-1))
+#     pygame.display.update()
+#     time.sleep(1)
+
 def draw_path(path):
-    for pos in path:
-        pygame.draw.rect(WIN,GREEN,((cell_size*pos[0])+2,(cell_size*pos[1])+2,cell_size-1,cell_size-1))
+    for i in range(1,len(path)-1):
+        pygame.draw.rect(WIN,GREEN,((cell_size*path[i][0])+2,(cell_size*path[i][1])+2,cell_size-1,cell_size-1))
         
         
 def main():
     draw_initial_board(rows,cols)
     
-    start = Node(starting_point)
-    goal = Node(goal_point)
+    maze=[[True for i in range(cols)] for i in range(rows)]
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -180,13 +217,15 @@ def main():
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    print("sus")
-                    path=find_path(start,goal)
-                    print(path)
+                    path,cost=astar(maze,starting_point,goal_point)
+                    if cost==-1:
+                        print("IMPOSSIBLE PATH!")
                     draw_path(path)
+                # if event.key == pygame.K_q:
+                #     path,cost=draw_find_path(start,goal,visitable_points)
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos=pygame.mouse.get_pos()
-                update_board((mouse_pos[0]//cell_size,mouse_pos[1]//cell_size))
+                maze=update_board((mouse_pos[0]//cell_size,mouse_pos[1]//cell_size),maze)
             
         pygame.display.update()
 
