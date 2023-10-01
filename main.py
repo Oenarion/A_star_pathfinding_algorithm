@@ -3,6 +3,8 @@ import sys
 import inputBox as inp
 import button
 import node
+import time
+import heapq
 from tkinter import *
 from tkinter import messagebox
 
@@ -86,21 +88,21 @@ def astar(maze, start, end):
     closed_list = set()                # <-- closed_list must be a set
 
     # Add the start node
-    open_list.append(start_node)
+    heapq.heapify(open_list)
+    heapq.heappush(open_list, start_node)
 
     # Loop until you find the end
     while len(open_list) > 0:
 
         # Get the current node
-        current_node = open_list[0]
-        current_index = 0
-        for index, item in enumerate(open_list):
+        current_node = heapq.heappop(open_list)
+
+        for item in open_list:
             if item.f < current_node.f:
                 current_node = item
-                current_index = index
+
 
         # Pop current off open list, add to closed list
-        open_list.pop(current_index)
         closed_list.add(current_node)     # <-- change append to add
 
         # Found the goal
@@ -133,7 +135,7 @@ def astar(maze, start, end):
                     continue
 
             # Add the child to the open list
-            open_list.append(child)
+            heapq.heappush(open_list,child)
     return [],-1
 
 

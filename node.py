@@ -14,3 +14,6 @@ class Node():
 
     def __hash__(self):               #<-- added a hash method
         return hash(self.position)
+    
+    def __lt__(self, other):
+        return self.f < other.f
