@@ -3,7 +3,8 @@ import sys
 import inputBox as inp
 import button
 import node
-import time
+from tkinter import *
+from tkinter import messagebox
 
 pygame.init()
 
@@ -136,7 +137,6 @@ def astar(maze, start, end):
     return [],-1
 
 
-
 #DRAWS THE BOXES FOR ALGORITHM
 def draw_initial_board(rows,cols):
     print(starting_point,goal_point)
@@ -171,7 +171,7 @@ def update_board(curr_pos,visitable_points):
 #simple heuristic for the computation    
 def heuristic(child,current_node,end_node):
     child.g = current_node.g + 1
-    child.h = ((child.position[0] - end_node.position[0]) ** 2) + ((child.position[1] - end_node.position[1]) ** 2)
+    child.h = abs(((child.position[0] - end_node.position[0]))) + abs(((child.position[1] - end_node.position[1])))
     child.f = child.g + child.h
 
 def get_neighbors(current_node,maze):
@@ -208,6 +208,7 @@ def get_neighbors(current_node,maze):
 def draw_path(path):
     for i in range(1,len(path)-1):
         pygame.draw.rect(WIN,GREEN,((cell_size*path[i][0])+2,(cell_size*path[i][1])+2,cell_size-1,cell_size-1))
+    pygame.display.update()
         
         
 def main():
@@ -223,8 +224,12 @@ def main():
                 if event.key == pygame.K_SPACE:
                     path,cost=astar(maze,starting_point,goal_point)
                     if cost==-1:
-                        print("IMPOSSIBLE PATH!")
+                        messagebox.showerror('ERROR','NO PATH POSSIBLE')
+                        main_menu()
+                        
                     draw_path(path)
+                    messagebox.showinfo('COST','total cost is: '+str(cost))
+                    main_menu()
                 # if event.key == pygame.K_q:
                 #     path,cost=draw_find_path(start,goal,visitable_points)
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -236,6 +241,8 @@ def main():
 def main_menu():
     global rows,cols,starting_point,goal_point
     
+    #resize if we going back to main menu
+    WIN = pygame.display.set_mode(size=(WIDTH,HEIGHT))
     WIDTH_BOX=150
     HEIGHT_BOX=50
     
