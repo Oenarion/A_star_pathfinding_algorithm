@@ -158,9 +158,13 @@ def draw_initial_board(rows,cols):
 
 #updates the current grid, if we want to create some walls
 def update_board(curr_pos,visitable_points):
-    if curr_pos!=starting_point and curr_pos!=goal_point:
-        pygame.draw.rect(WIN,WHITE,((cell_size*curr_pos[0])+2,(cell_size*curr_pos[1])+2,cell_size-1,cell_size-1))
-    visitable_points[curr_pos[0]][curr_pos[1]]=False
+    if visitable_points[curr_pos[0]][curr_pos[1]]==False:
+        pygame.draw.rect(WIN,BLACK,((cell_size*curr_pos[0])+2,(cell_size*curr_pos[1])+2,cell_size-1,cell_size-1))
+        visitable_points[curr_pos[0]][curr_pos[1]]=True
+    else:
+        if curr_pos!=starting_point and curr_pos!=goal_point:
+            pygame.draw.rect(WIN,WHITE,((cell_size*curr_pos[0])+2,(cell_size*curr_pos[1])+2,cell_size-1,cell_size-1))
+        visitable_points[curr_pos[0]][curr_pos[1]]=False
     return visitable_points
     
     
