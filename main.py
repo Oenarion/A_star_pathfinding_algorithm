@@ -180,7 +180,7 @@ def heuristic(child,current_node,end_node):
 
 def get_neighbors(current_node,maze):
     children = []
-    for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0)]: # Adjacent squares
+    for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (1, 1), (1, -1), (-1, 1)]: # Adjacent squares
 
         # Get node position
         node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
