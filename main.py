@@ -74,7 +74,7 @@ goal_point=(2,2)
 #     end (while loop)
 
 
-def astar(maze, start, end):
+def astar(maze, start, end,showAnimation):
     """Returns a list of tuples as a path from the given start to the given end in the given maze"""
 
     # Create start and end node
@@ -136,6 +136,8 @@ def astar(maze, start, end):
 
             # Add the child to the open list
             heapq.heappush(open_list,child)
+            if showAnimation:
+                draw_node(current_node,child)
     return [],-1
 
 
@@ -199,13 +201,13 @@ def get_neighbors(current_node,maze):
 
     return children
 
-# def draw_current_path(open_list,node):
-#     # if node!=starting_point:
-#     pygame.draw.rect(WIN,PURPLE,((cell_size*node.position[0])+2,(cell_size*node.position[1])+2,cell_size-1,cell_size-1))
-#     for possible_nodes in open_list:  
-#         pygame.draw.rect(WIN,ORANGE,((cell_size*possible_nodes[1].position[0])+2,(cell_size*possible_nodes[1].position[1])+2,cell_size-1,cell_size-1))
-#     pygame.display.update()
-#     time.sleep(1)
+def draw_node(curr_node,child):
+    if curr_node.position!=starting_point and curr_node.position!=goal_point:
+        pygame.draw.rect(WIN,PURPLE,((cell_size*curr_node.position[0])+2,(cell_size*curr_node.position[1])+2,cell_size-1,cell_size-1))
+    if child.position!=goal_point:
+        pygame.draw.rect(WIN,ORANGE,((cell_size*child.position[0])+2,(cell_size*child.position[1])+2,cell_size-1,cell_size-1))
+    pygame.display.update()
+    time.sleep(0.01)
 
 def draw_path(path):
     for i in range(1,len(path)-1):
@@ -224,7 +226,7 @@ def main():
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    path,cost=astar(maze,starting_point,goal_point)
+                    path,cost=astar(maze,starting_point,goal_point,False)
                     if cost==-1:
                         messagebox.showerror('ERROR','NO PATH POSSIBLE')
                         main_menu()
@@ -232,8 +234,15 @@ def main():
                     draw_path(path)
                     messagebox.showinfo('COST','total cost is: '+str(cost))
                     main_menu()
-                # if event.key == pygame.K_q:
-                #     path,cost=draw_find_path(start,goal,visitable_points)
+                if event.key == pygame.K_q:
+                    path,cost=astar(maze,starting_point,goal_point,True)
+                    if cost==-1:
+                        messagebox.showerror('ERROR','NO PATH POSSIBLE')
+                        main_menu()
+                        
+                    draw_path(path)
+                    messagebox.showinfo('COST','total cost is: '+str(cost))
+                    main_menu()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos=pygame.mouse.get_pos()
                 maze=update_board((mouse_pos[0]//cell_size,mouse_pos[1]//cell_size),maze)
@@ -247,6 +256,11 @@ def main_menu():
     WIN = pygame.display.set_mode(size=(WIDTH,HEIGHT))
     WIDTH_BOX=150
     HEIGHT_BOX=50
+    
+    space_text='PRESS SPACE FOR INSTANT RESULT'
+    q_text='PRESS Q TO SEE ANIMATION'
+    space_txt_surface = FONT.render(space_text, True,(0,0,0))
+    q_txt_surface = FONT.render(q_text,True,(0,0,0))
     
     inp_box1=inp.InputBox((WIDTH//4)-(WIDTH_BOX//2),(HEIGHT//2)-3*HEIGHT_BOX,WIDTH_BOX,HEIGHT_BOX,70,"2")
     inp_box2=inp.InputBox((WIDTH//4)-(WIDTH_BOX//2),(HEIGHT//2)-HEIGHT_BOX,WIDTH_BOX,HEIGHT_BOX,70,"2")
@@ -307,7 +321,10 @@ def main_menu():
             box.update()
             
         #redraws the board
-        WIN.fill(WHITE)
+        WIN.fill(PURPLE)
+        
+        WIN.blit(space_txt_surface, ((WIDTH//4)-35, ((HEIGHT//2) - 6*HEIGHT_BOX)+20))
+        WIN.blit(q_txt_surface, ((WIDTH//4), ((HEIGHT//2) - 5*HEIGHT_BOX)+20))
         
         WIN.blit(txt_surface1, ((WIDTH//4)-22, ((HEIGHT//2) - 4*HEIGHT_BOX)+20))
         WIN.blit(txt_surface2, ((WIDTH//4)-22, ((HEIGHT//2) - 2*HEIGHT_BOX)+20))
